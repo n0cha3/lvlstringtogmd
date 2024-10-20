@@ -3,12 +3,12 @@
 int main(int argc, char *argv[]) {
 
     if (argc<5) {
-        printf("%s\n%s", Messages[3], ErrorMessages[0]);
+        fprintf(stderr, "%s\n%s", Messages[3], ErrorMessages[0]);
         return EXIT_FAILURE;
     }
 
     if (argc>5) {
-        printf("%s\n%s", Messages[3], ErrorMessages[1]);
+        fprintf(stderr, "%s\n%s", Messages[3], ErrorMessages[1]);
         return EXIT_FAILURE;
     }
 
@@ -19,26 +19,28 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[4], "false") == 0) GdLevel.IsNewgrounds = false;
     
     else {
-        puts(ErrorMessages[11]);
+        fputs(ErrorMessages[11], stderr);
         return EXIT_FAILURE;
     }
 
     if(strlen(argv[2]) > GDMAX) {
-        puts(ErrorMessages[7]);
+        fputs(ErrorMessages[7], stderr);
         return EXIT_FAILURE;
     }
 
-    GdLevel.LevelName = malloc(strlen(argv[2]));
+    GdLevel.LevelName = malloc(strlen(argv[2]) + 1);
 
-    strcpy(
-            GdLevel.LevelName, 
-            argv[2]
-        );
+    if (GdLevel.LevelName == NULL) {
+        fputs("Failed to allocate", stderr);
+        return EXIT_FAILURE;
+    }
+
+    strcpy(GdLevel.LevelName, argv[2]);
 
     GdLevel.SongID = 0;
     GdLevel.SongID = atoi(argv[3]);
 
-    FILE *File = fopen(argv[1], "r\0");
+    FILE *File = fopen(argv[1], "r");
 
     if(File != NULL) {
         if (fseek(File, 0, SEEK_END) == 0) {
@@ -46,21 +48,23 @@ int main(int argc, char *argv[]) {
              rewind(File);
 
              printf(
-                "\n%s\t%u\t%s", 
+                "\n%s\t%zu\t%s", 
                 Messages[0], 
                 GdLevel.RawBufferSize, 
                 Messages[1]
                 );
 
-                GdLevel.LevelBuffer = malloc(GdLevel.RawBufferSize);
+                GdLevel.LevelBuffer = malloc(GdLevel.RawBufferSize + 1);
                 
                 if(GdLevel.LevelBuffer == NULL) {
-                    puts(ErrorMessages[4]);
+                    fputs(ErrorMessages[4], stderr);
                     return EXIT_FAILURE;
                 }
 
-                if (fread(GdLevel.LevelBuffer, 1, GdLevel.RawBufferSize, File) < 0) {
-                    puts(ErrorMessages[6]);
+                GdLevel.LevelBuffer[GdLevel.RawBufferSize] = '\0';
+
+                if (fread(GdLevel.LevelBuffer, sizeof(char), GdLevel.RawBufferSize, File) == 0) {
+                    fputs(ErrorMessages[6], stderr);
                     fclose(File);
                     return EXIT_FAILURE;
                 }
@@ -71,9 +75,14 @@ int main(int argc, char *argv[]) {
 
                 free(GdLevel.LevelBuffer);
 
-                if (StringStatus) return EXIT_FAILURE;
+                if (!StringStatus) return EXIT_FAILURE;
 
-                char *FileNameWithEx = malloc(strlen(GdLevel.LevelName) + GMDEX);
+                char *FileNameWithEx = malloc((strlen(argv[2]) + GMDEX) + 1);
+
+                if (FileNameWithEx == NULL) {
+                    fputs("Can't allocate memory", stderr);
+                    return EXIT_FAILURE;
+                }
 
                 strcpy(FileNameWithEx, GdLevel.LevelName);
 
@@ -129,16 +138,16 @@ bool GenerateString(gmd_t *Level) {
                     NULL,
                     0,
                     "%s%s%s%s%s%u%s",
-                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>\0",
+                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>",
                     Level->LevelName,
-                    "</s><k>k3</k><s></s><k>k4</k><s>\0",
+                    "</s><k>k3</k><s></s><k>k4</k><s>",
                     Level->LevelBuffer,
-                    "</s><k>k8</k><i>\0",
+                    "</s><k>k8</k><i>",
                     Level->SongID,
-                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>\0"
+                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>"
                     );
 
-                Level->GmdOut = malloc(Level->GmdOutSize);
+                Level->GmdOut = malloc(Level->GmdOutSize + 1);
 
                 if(Level->GmdOut == NULL) {
                     puts(ErrorMessages[5]);
@@ -148,16 +157,16 @@ bool GenerateString(gmd_t *Level) {
                 sprintf(
                     Level->GmdOut,
                     "%s%s%s%s%s%u%s",
-                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>\0",
+                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>",
                     Level->LevelName,
-                    "</s><k>k3</k><s></s><k>k4</k><s>\0",
+                    "</s><k>k3</k><s></s><k>k4</k><s>",
                     Level->LevelBuffer,
-                    "</s><k>k8</k><i>\0",
+                    "</s><k>k8</k><i>",
                     Level->SongID,
-                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>\0"
+                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>"
                     );
 
-                printf("\n%s\t%u\t%s", Messages[4], Level->GmdOutSize, Messages[5]);
+                printf("\n%s\t%zu\t%s", Messages[4], Level->GmdOutSize, Messages[5]);
         }
 
                 else {
@@ -165,14 +174,14 @@ bool GenerateString(gmd_t *Level) {
                     NULL,
                     0,
                     "%s%s%s%s%s",
-                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>\0",
+                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>",
                     Level->LevelName,
-                    "</s><k>k3</k><s></s><k>k4</k><s>\0",
+                    "</s><k>k3</k><s></s><k>k4</k><s>",
                     Level->LevelBuffer,
-                    "</s><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>\0"
+                    "</s><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>"
                     );
-
-                Level->GmdOut = malloc(Level->GmdOutSize);
+                
+                Level->GmdOut = malloc(Level->GmdOutSize + 1);
 
                 if(Level->GmdOut == NULL) {
                     puts(ErrorMessages[5]);
@@ -182,14 +191,14 @@ bool GenerateString(gmd_t *Level) {
                 sprintf(
                     Level->GmdOut,
                     "%s%s%s%s%s",
-                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>\0",
+                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>",
                     Level->LevelName,
-                    "</s><k>k3</k><s></s><k>k4</k><s>\0",
+                    "</s><k>k3</k><s></s><k>k4</k><s>",
                     Level->LevelBuffer,
-                    "</s><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>\0"
+                    "</s><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>"
                     );
 
-                printf("\n%s\t%u\t%s", Messages[4], Level->GmdOutSize, Messages[5]);
+                printf("\n%s\t%zu\t%s", Messages[4], Level->GmdOutSize, Messages[5]);
             }
     }
 
@@ -198,16 +207,16 @@ bool GenerateString(gmd_t *Level) {
                     NULL,
                     0,
                     "%s%s%s%s%s%u%s",
-                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>\0",
+                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>",
                     Level->LevelName,
-                    "</s><k>k3</k><s></s><k>k4</k><s>\0",
+                    "</s><k>k3</k><s></s><k>k4</k><s>",
                     Level->LevelBuffer,
-                    "</s><k>k45</k><i>\0",
+                    "</s><k>k45</k><i>",
                     Level->SongID,
-                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>\0"
+                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>"
                     );
 
-                Level->GmdOut = malloc(Level->GmdOutSize);
+                Level->GmdOut = malloc(Level->GmdOutSize + 1);
 
                 if(Level->GmdOut == NULL) {
                     puts(ErrorMessages[5]);
@@ -218,18 +227,17 @@ bool GenerateString(gmd_t *Level) {
                 sprintf(
                     Level->GmdOut,
                     "%s%s%s%s%s%u%s",
-                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>\0",
+                    "<d><k>kCEK</k><i>4</i><k>k2</k><s>",
                     Level->LevelName,
-                    "</s><k>k3</k><s></s><k>k4</k><s>\0",
+                    "</s><k>k3</k><s></s><k>k4</k><s>",
                     Level->LevelBuffer,
-                    "</s><k>k45</k><i>\0",
+                    "</s><k>k45</k><i>",
                     Level->SongID,
-                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>\0"
+                    "</i><k>k13</k><t/><k>k21</k><i>2</i><k>k50</k><i>35</i></d>"
                     );
-
-                printf("\n%s\t%u\t%s", Messages[4], Level->GmdOutSize, Messages[5]);
+                
+                printf("\n%s\t%zu\t%s", Messages[4], Level->GmdOutSize, Messages[5]);
     }
-    
     return true;
 
 }

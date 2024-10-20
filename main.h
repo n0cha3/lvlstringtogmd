@@ -33,7 +33,7 @@ const char *ErrorMessages[12] = {
     "\nError: Can't read the file.\n\0",
     "\nCan't allocate memory to hold the original string.\n\0",
     "\nCan't allocate memory to hold the out string.\n\0",
-    "\nGmd string size.\n\0",
+    "\nLevel string size is 0.\n\0",
     "\nThe level name is too long.\n\0",
     "\nFailed to read file.\n\0",
     "\nExport fail.\n\0",
